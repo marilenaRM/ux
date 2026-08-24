@@ -35,7 +35,7 @@ final class StimulusExtension extends Extension implements PrependExtensionInter
         $config = $this->processConfiguration($this, $configs);
 
         $container->findDefinition('stimulus.asset_mapper.controllers_map_generator')
-            ->replaceArgument(2, $config['controller_paths'])
+            ->replaceArgument(2, $this->getControllerPaths($config['controller_paths'], $container))
             ->replaceArgument(3, $config['controllers_json']);
 
         if (!class_exists(ImportMapConfigReader::class)) {
@@ -71,7 +71,7 @@ final class StimulusExtension extends Extension implements PrependExtensionInter
         $rootNode
             ->children()
                 ->arrayNode('controller_paths')
-                    ->defaultValue(['%kernel.project_dir%/assets/controllers'])
+                    ->info('Directories scanned for Stimulus controllers. "%kernel.project_dir%/assets/controllers" is added automatically when it exists, so bundles can contribute their own directory without replacing it.')
                     ->scalarPrototype()->end()
                 ->end()
                 ->scalarNode('controllers_json')
@@ -80,6 +80,41 @@ final class StimulusExtension extends Extension implements PrependExtensionInter
             ->end();
 
         return $treeBuilder;
+    }
+
+    /**
+     * The application's own controllers directory used to be the default value of the
+     * "controller_paths" node. A node default only applies when *no* configuration
+     * source sets the option, so a bundle prepending its own directory took the
+     * default's place and silently unregistered every controller of the application:
+     * pages kept rendering, no error was raised anywhere.
+     *
+     * It is therefore appended here instead, once every source has been merged. Last
+     * position is deliberate: controllers are keyed by name and the last path wins, so
+     * an application controller always takes precedence over a bundle one sharing its
+     * name. Applications that already list the directory explicitly keep a single
+     * entry, and applications that have no such directory get none — which also lets
+     * an application that does not use Stimulus itself depend on a bundle that does.
+     *
+     * @param list<string> $controllerPaths
+     *
+     * @return list<string>
+     */
+    private function getControllerPaths(array $controllerPaths, ContainerBuilder $container): array
+    {
+        $projectControllerPath = $container->getParameter('kernel.project_dir').'/assets/controllers';
+
+        if (\in_array($projectControllerPath, $controllerPaths, true)) {
+            return $controllerPaths;
+        }
+
+        if (!$container->fileExists($projectControllerPath, false)) {
+            return $controllerPaths;
+        }
+
+        $controllerPaths[] = $projectControllerPath;
+
+        return $controllerPaths;
     }
 
     private function isAssetMapperAvailable(ContainerBuilder $container): bool

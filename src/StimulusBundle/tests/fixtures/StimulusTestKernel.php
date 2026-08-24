@@ -75,7 +75,10 @@ class StimulusTestKernel extends Kernel
 
         $container->extension('stimulus', [
             'controller_paths' => [
-                __DIR__.'/assets/controllers',
+                // spelled as a parameter on purpose: this is the directory that used to
+                // be the node's default value, and it must still be recognized as such
+                // (and so not registered twice) once the configuration is resolved
+                '%kernel.project_dir%/assets/controllers',
                 __DIR__.'/assets/more-controllers',
             ],
         ]);

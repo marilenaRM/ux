@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2.37
+
+- Stop registering `%kernel.project_dir%/assets/controllers` as the default value of
+  `controller_paths`, and append it once every configuration source has been merged
+  instead. A node default only applies when no source sets the option, so a bundle
+  prepending its own controllers directory silently unregistered every controller of
+  the application. The directory is now only added when it exists, so an application
+  that does not use Stimulus itself can depend on a bundle that does.
+
 ## 2.33
 
 - Change AssetMapper `excluded_patterns` from `**/controllers.json` to `*/controllers.json`

@@ -63,6 +63,12 @@ class ControllersMapGenerator
      */
     private function loadCustomControllers(): array
     {
+        // an application may legitimately have no controller directory at all: it does
+        // not use Stimulus itself, and only depends on a bundle that does
+        if (!$this->controllerPaths) {
+            return [];
+        }
+
         $finder = new Finder();
         $finder->in($this->controllerPaths)
             ->files()
